@@ -87,7 +87,8 @@ Preferences.prototype = {
   _get: function(prefName, defaultValue) {
     switch (this._prefSvc.getPrefType(prefName)) {
       case Ci.nsIPrefBranch.PREF_STRING:
-        return this._prefSvc.getComplexValue(prefName, Ci.nsISupportsString).data;
+        //return this._prefSvc.getComplexValue(prefName, Ci.nsISupportsString).data;
+        return this._prefSvc.getStringPref(prefName);
 
       case Ci.nsIPrefBranch.PREF_INT:
         return this._prefSvc.getIntPref(prefName);

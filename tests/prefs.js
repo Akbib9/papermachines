@@ -273,7 +273,8 @@ var preferences = {
 
       // If interfaceType has been set, handle it differently
       if (interfaceType != undefined) {
-        return branch.getComplexValue(prefName, interfaceType);
+        // return branch.getComplexValue(prefName, interfaceType);
+        return branch.getStringPref(prefName);
       }
 
       switch (typeof defaultValue) {
