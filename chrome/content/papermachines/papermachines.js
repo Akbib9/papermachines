@@ -11,6 +11,7 @@ Zotero.PaperMachines = {
 	processQuery: "SELECT * FROM processed_collections WHERE process_path = ?;",
 	pm_dir: null,
 	csv_dir: null,
+	extract_dir: null,
 	extract_csv_dir: null,
 	out_dir: null,
 	log_dir: null,
@@ -38,9 +39,11 @@ Zotero.PaperMachines = {
 			var classifiers = [];
 			var classifiedCollections = Zotero.PaperMachines.DB.columnQuery("SELECT collection FROM processed_collections WHERE status = 'done' AND processor='mallet_train-classifier';");
 			classifiedCollections.forEach(function (collection) {
-				var classifier = Zotero.PaperMachines.out_dir.clone();
-				classifier.append("mallet_train-classifier" + collection);
-				classifier.append("trained.classifier");
+				// var classifier = Zotero.PaperMachines.out_dir.clone();
+				// classifier.append("mallet_train-classifier" + collection);
+				// classifier.append("trained.classifier");
+				var classifier = OS.Path.join(Zotero.PaperMachines.out_dir,"mallet_train-classifier" + collection,"trained.classifier");
+				console.log('classifier',classifier)
 				if (classifier.exists()) {
 					classifiers.push({"name": Zotero.PaperMachines.getNameOfGroup(collection), "label": " ", "value": classifier.path});
 				}
@@ -210,11 +213,15 @@ Zotero.PaperMachines = {
 					var ids = Zotero.PaperMachines.search(queryString);
 					_uri = "data:application/json," + encodeURIComponent(JSON.stringify(ids));
 				} else {
-					var file1 = Zotero.PaperMachines.out_dir.clone();
+					// var file1 = Zotero.PaperMachines.out_dir.clone();
+					var support = '';
 					if (pathParts.indexOf("support") != -1) {
-						file1.append("support");
+						// file1.append("support");
+						support = 'support';
 					}
-					file1.append(pathParts.slice(-1)[0]);
+					// file1.append(pathParts.slice(-1)[0]);
+					var file1 = OS.Path.join(Zotero.PaperMachines.out_dir,support,pathParts.slice(-1)[0]);
+					console.log('file1',file1)
 
 					if (file1.exists()) {
 						file = file1;
@@ -288,8 +295,19 @@ Zotero.PaperMachines = {
 								 .getService(Components.interfaces.nsIProtocolHandler)
 								 .wrappedJSObject;
 		protocol._extensions[this.SCHEME] = this.channel;
-		this.pm_dir = this._getOrCreateDir("papermachines", Zotero.getZoteroDirectory());
+		console.log('PaperMachines')
+		// console.log('Zotero.getZoteroDirectory()',Zotero.getZoteroDirectory())
+		console.log('Zotero.DataDirectory.dir',Zotero.DataDirectory.dir)
+		// Zotero.Error('Zotero.DataDirectory.dir'+Zotero.DataDirectory.dir)
+
+		// this.pm_dir = this._getOrCreateDir("papermachines", Zotero.getZoteroDirectory());
+		
+		// this.pm_dir = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines')
+		// await OS.File.makeDir(this.pm_dir, { ignoreExisting: true })
+
+		this.pm_dir = this._getOrCreateDir("papermachines", Zotero.DataDirectory.dir);
 		this.csv_dir = this._getOrCreateDir("csv");
+		this.extract_dir = this._getOrCreateDir("extract");
 		this.extract_csv_dir = this._getOrCreateDir("extractcsv");
 		this.out_dir = this._getOrCreateDir("out");
 		this.processors_dir = this._getOrCreateDir("processors");
@@ -297,16 +315,46 @@ Zotero.PaperMachines = {
 		this.props_dir = this._getOrCreateDir("props", this.log_dir);
 		this.args_dir = this._getOrCreateDir("args");
 
-		var jython = this.processors_dir.clone();
-		jython.append("jython.jar");
+		// this.pm_dir = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines')
+		// await OS.File.makeDir(this.pm_dir, { ignoreExisting: true });
+		// this.csv_dir = OS.Path.join(this.pm_dir,"csv");
+		// await OS.File.makeDir(this.csv_dir, { ignoreExisting: true });
+		// this.extract_csv_dir = OS.Path.join(this.pm_dir,"extractcsv");
+		// await OS.File.makeDir(this.extract_csv_dir, { ignoreExisting: true });
+		// this.out_dir = OS.Path.join(this.pm_dir,"out");
+		// await OS.File.makeDir(this.out_dir, { ignoreExisting: true });
+		// this.processors_dir = OS.Path.join(this.pm_dir,"processors");
+		// await OS.File.makeDir(this.processors_dir, { ignoreExisting: true });
+		// this.log_dir = OS.Path.join(this.pm_dir,"logs", this.out_dir);
+		// await OS.File.makeDir(this.log_dir, { ignoreExisting: true });
+		// this.props_dir = OS.Path.join(this.pm_dir,"props", this.log_dir);
+		// await OS.File.makeDir(this.props_dir, { ignoreExisting: true });
+		// this.args_dir = OS.Path.join(this.pm_dir,"args");
+		// await OS.File.makeDir(this.args_dir, { ignoreExisting: true });
 
-		this.jython_path = jython.path;
+		console.log('pre jython');
+
+		// var jython = this.processors_dir.clone();
+		// jython.append("jython.jar");
+
+		// this.jython_path = jython.path;
+		this.jython_path = OS.Path.join(this.processors_dir,"jython.jar");
+
+		this.java_exe = '/usr/bin/java';
+		console.log('this.java_exe',this.java_exe)
 
 		await this.initDB();
 
+		console.log('past jython');
+
+		// Components.utils.import("chrome://papermachines/content/Preferences.js");
 		Components.utils.import("chrome://papermachines/content/strptime.js");
 
+		console.log('past strptime');
+
 		this.getStringsFromBundle();
+
+		console.log('past getStringsFromBundle');
 
 		Components.utils.import("resource://gre/modules/AddonManager.jsm");
 		AddonManager.getAddonByID("papermachines@papermachines.org",
@@ -314,13 +362,35 @@ Zotero.PaperMachines = {
 				Zotero.PaperMachines._updateBundledFilesCallback(addon.getResourceURI("").QueryInterface(Components.interfaces.nsIFileURL).file);
 			});
 
+			console.log('past AddonManager');
+
 		// Detect stoplist language changed
 		Preferences.observe("extensions.papermachines.general.lang", Zotero.PaperMachines.selectStoplist);
 
-		this.java_exe = this.findJavaExecutable();
+		console.log('past Preferences');
 
+		// this.java_exe = this.findJavaExecutable();
+		// console.log('this.java_exe',this.java_exe)
+
+		// await this.initDB();
+	},
+	initDB: async function(){
+		if (this.DB !== null) return;
+		const dbpath = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines.sqlite');
+		// const dbpath = OS.Path.join(Zotero.getZoteroDirectory(), 'papermachines.sqlite');
+		// const dbpath = 'papermachines';
+		console.log('DBConnection');
 		// Connect to (and create, if necessary) papermachines.sqlite in the Zotero directory
-		this.DB = new Zotero.DBConnection('papermachines');
+		try {
+			this.DB = new Zotero.DBConnection(dbpath);
+		}
+		catch(e){
+			console.log("Zotero.DBConnection error",e)
+		}
+		// console.log("this.DB",this.DB)
+
+		// this.DB.integrityCheck();
+    	// const exists = await OS.File.exists(dbpath)
 
 		for (var i in this.schema) {
 			if (!await this.DB.tableExists(i)) {
@@ -332,14 +402,16 @@ Zotero.PaperMachines = {
 		await this.DB.queryAsync("DELETE from files_to_extract;");
 	},
 	getZoteroPane: function () {
-		var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-					.getService(Components.interfaces.nsIWindowMediator);
-		var enumerator = wm.getEnumerator("navigator:browser");
-		while (enumerator.hasMoreElements()) {
-			var win = enumerator.getNext();
-			if (!win.ZoteroPane) continue;
-			return win.ZoteroPane;
-		}
+		// var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+		// 			.getService(Components.interfaces.nsIWindowMediator);
+		// var enumerator = wm.getEnumerator("navigator:browser");
+		// while (enumerator.hasMoreElements()) {
+		// 	var win = enumerator.getNext();
+		// 	if (!win.ZoteroPane) continue;
+		// 	return win.ZoteroPane;
+		// }
+		var win = Components.classes["@mozilla.org/appshell/window-mediator;1"].getService(Components.interfaces.nsIWindowMediator).getMostRecentWindow("navigator:browser");
+		return win.ZoteroPane;
 	},
 	createUI: function (retries) {
 		retries = (retries !== undefined) ? retries : 3;
@@ -349,7 +421,10 @@ Zotero.PaperMachines = {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
 
 		try {
-			var tagSelector = ZoteroPane.document.getElementById("zotero-tag-selector");
+			// var tagSelector = ZoteroPane.document.getElementById("zotero-tag-selector");
+			var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator).getMostRecentWindow("navigator:browser");
+			var tagSelector = win.ZoteroPane.tagSelector;
 			if (tagSelector && "id" in tagSelector && tagSelector.id("no-tags-box") && tagSelector.id("no-tags-box").firstChild) {
 				Zotero.PaperMachines.noTagsString = tagSelector.id("no-tags-box").firstChild.value;
 			}
@@ -372,28 +447,47 @@ Zotero.PaperMachines = {
 		if(this.DB === null) await this.initDB();
 		// console.log('this.DB',this.DB)
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		var itemGroup = ZoteroPane.getItemGroup();
+		// var itemGroup = ZoteroPane.getItemGroup();
+		var itemGroup = ZoteroPane.getCollectionTreeRow();
+		// var itemGroup = ZoteroPane.collectionsView.selectedTreeRow
+		// var itemGroup = ZoteroPane.collectionsView;
 		var id = this.getItemGroupID(itemGroup);
+		console.log('extractText id',id)
+		
+		// var pdftotext = Zotero.getZoteroDirectory();
+		// pdftotext.append(Zotero.Fulltext.pdfConverterFileName);
+		// Zotero.Fulltext.getPDFConverterExecAndArgs = function () {
+		// 	return {
+		// 		exec: _pdfConverter,
+		// 		args: ['-datadir', _pdfData]
+		// 	}
+		// };
+		// var pdfConverterFileName = Zotero.Fulltext.getPDFConverterExecAndArgs();
+		// console.log('Zotero.Fulltext.pdfConverterFileName',pdfConverterFileName)
+		// console.log('Zotero.DataDirectory.dir',Zotero.DataDirectory.dir)
+		// var pdftotext = OS.Path.join(Zotero.DataDirectory.dir, pdfConverterFileName)
+		var pdftotext = OS.Path.join(Zotero.DataDirectory.dir, 'pdftotext')
+		// await OS.File.makeDir(this.pm_dir, { ignoreExisting: true });
 
-		var pdftotext = Zotero.getZoteroDirectory();
-		pdftotext.append(Zotero.Fulltext.pdfConverterFileName);
-
-		var path = "zotero://papermachines/extract/" + Zotero.PaperMachines.getItemGroupID(itemGroup) + "/" + encodeURIComponent(pdftotext.path);
+		var path = "zotero://papermachines/extract/" + Zotero.PaperMachines.getItemGroupID(itemGroup) + "/" + encodeURIComponent(pdftotext);
 		// this.DB.beginTransaction();
 		this.DB.queryAsync("UPDATE processed_collections SET status = 'failed' WHERE processor='extract' AND collection = ?;", [id]);
 		this.DB.queryAsync("DELETE FROM collection_docs WHERE collection = ? OR collection IN (SELECT child FROM collections WHERE parent = ?);", [id, id]);
 		// this.DB.commitTransaction();
 
 		var queue = new Zotero.PaperMachines._Sequence(function() {
-			Zotero.UnresponsiveScriptIndicator.enable();
-			Zotero.hideZoteroPaneOverlay();
-			Zotero.PaperMachines.openWindowOrTab(path);
+			// Zotero.UnresponsiveScriptIndicator.enable();
+			Zotero.hideZoteroPaneOverlays();
+			//Zotero.PaperMachines.openWindowOrTab(path);
+			path = "extract/" + Zotero.PaperMachines.getItemGroupID(itemGroup) + "/" + encodeURIComponent(pdftotext);
+			Zotero.PaperMachines._runProcessPath(path);
 		});
 
-		Zotero.UnresponsiveScriptIndicator.disable();
+		// Zotero.UnresponsiveScriptIndicator.disable();
 
 		queue.grandTotal = await Zotero.PaperMachines.countItemsInGroup(itemGroup) || 1000;
 
+		console.log('queue.grandTotal',queue.grandTotal)
 
 		Zotero.showZoteroPaneProgressMeter("Searching for files to extract");
 
@@ -407,7 +501,8 @@ Zotero.PaperMachines = {
 	},
 	countText: async function () {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		var itemGroup = ZoteroPane.getItemGroup();
+		//var itemGroup = ZoteroPane.getItemGroup();
+		var itemGroup = ZoteroPane.getCollectionTreeRow();
 		var id = this.getItemGroupID(itemGroup);
 		var docs = await this.DB.valueQueryAsync("SELECT COUNT(*) FROM collection_docs WHERE collection = ? OR collection IN (SELECT child FROM collections WHERE parent = ?);", [id, id]);
 		var count = Zotero.PaperMachines.countItemsInGroup(itemGroup);
@@ -426,11 +521,17 @@ Zotero.PaperMachines = {
 	*/
 	_getOrCreateDir: function(dir, parent) {
 		parent = parent || this.pm_dir;
-		return this._getOrCreateNode(dir, parent, true);
+		var _dir = OS.Path.join(parent,dir);
+		console.log("_getOrCreateDir",parent,dir)
+		OS.File.makeDir(_dir, { ignoreExisting: true });
+		return _dir;
+		// return this._getOrCreateNode(dir, parent, true);
 	},
 	_getOrCreateFile: function(file, parent) {
 		parent = parent || this.pm_dir;
-		return this._getOrCreateNode(file, parent, false);
+		console.log('file',file,"parent",parent)
+		// return await this._getOrCreateNode(file, parent, false);
+		return OS.Path.join(parent,file);
 	},
 	_getLocalFile: function (path) {
 		var file = Components.classes["@mozilla.org/file/local;1"]
@@ -451,9 +552,11 @@ Zotero.PaperMachines = {
 
 			if (!newNode.exists()) {
 				if (dir_or_file) {
-					newNode.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
+					// newNode.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0755);
+					await OS.File.makeDir(newNode, { ignoreExisting: true });
 				} else {
-					newNode.create(Components.interfaces.nsIFile.FILE_TYPE, 0644);
+					// newNode.create(Components.interfaces.nsIFile.FILE_TYPE, 0644);
+					await OS.File.stat(newNode);
 				}
 			}
 		} catch (e) {
@@ -485,15 +588,17 @@ Zotero.PaperMachines = {
 			if (prompt_result) additional_args.push.apply(additional_args, prompt_result);
 			else return;
 		}
+		console.log('processPathParts done')
 
 		additional_args = additional_args.map(function (d) { return encodeURIComponent(d);});
 
 		processPathParts = processPathParts.concat(additional_args);
+		console.log('openWindowOrTab')
 		Zotero.PaperMachines.openWindowOrTab("zotero://papermachines/"+processPathParts.join('/'), processPathParts[0]);
 	},
 	_checkIfRunning: async function (processPath) {
 		var sql = "SELECT id FROM processed_collections WHERE process_path = ? AND status = 'running';";
-		return Zotero.PaperMachines.DB.query(sql, [processPath]);
+		return await Zotero.PaperMachines.DB.queryAsync(sql, [processPath]);
 	},
 	_runProcessPath: async function (processPath) {
 		console.log('_runProcessPath')
@@ -506,13 +611,21 @@ Zotero.PaperMachines = {
 		var thisGroup = Zotero.PaperMachines.getGroupByID(thisID);
 		var collectionName = Zotero.PaperMachines.getGroupName(thisGroup);
 
+		console.log('processor',processor)
+		console.log('thisID',thisID)
+		console.log('additional_args',additional_args)
+
 		var checkIfRunning = await Zotero.PaperMachines._checkIfRunning(processPath);
+		console.log('checkIfRunning',checkIfRunning)
+
 		if (checkIfRunning.length !==0 ) {
 			return;
 		}
-
-		var processor_file = Zotero.PaperMachines.processors_dir.clone();
-		processor_file.append(processor + ".py");
+		
+		// var processor_file = Zotero.PaperMachines.processors_dir.clone();
+		// processor_file.append(processor + ".py");
+		var processor_file = OS.Path.join(Zotero.PaperMachines.processors_dir,processor + ".py");
+		console.log('processor_file',processor_file)
 
 		var proc = Components.classes["@mozilla.org/process/util;1"]
 			.createInstance(Components.interfaces.nsIProcess);
@@ -523,10 +636,12 @@ Zotero.PaperMachines = {
 			var csv = await Zotero.PaperMachines.buildCSV(thisGroup);
 		}
 
-		var progressFile = Zotero.PaperMachines._getOrCreateFile(processor + thisID + "progress.html", Zotero.PaperMachines.out_dir);
-		var outFile = Zotero.PaperMachines.out_dir.clone();
+		console.log("build CSV done")
 
-		var args = [Zotero.PaperMachines.processors_dir.path, csv.path, Zotero.PaperMachines.out_dir.path, collectionName];
+		var progressFile = Zotero.PaperMachines._getOrCreateFile(processor + thisID + "progress.html", Zotero.PaperMachines.out_dir);
+		var outFile = Zotero.PaperMachines.out_dir;//.clone();
+
+		var args = [Zotero.PaperMachines.processors_dir, csv, Zotero.PaperMachines.out_dir, collectionName];
 		args = args.concat(additional_args);
 
 		var args_str = JSON.stringify(args);
@@ -535,16 +650,18 @@ Zotero.PaperMachines = {
 		var argFile = Zotero.PaperMachines._getOrCreateFile(argsHashFilename, Zotero.PaperMachines.args_dir);
 		Zotero.File.putContentsAsync(argFile, args_str);
 
-		var loggingProperties = Zotero.PaperMachines.createLogPropertiesFile(args_hash, progressFile.path.replace(".html", ".txt"));
+		var loggingProperties = Zotero.PaperMachines.createLogPropertiesFile(args_hash, progressFile.replace(".html", ".txt"));
 
-		var procArgs = [processor_file.path, argFile.path];
+		var procArgs = [processor_file, argFile];
 
-		outFile.append(processor + thisID + "-" + args_hash + ".html");
+		outFile = OS.Path.join(outFile,(processor + thisID + "-" + args_hash + ".html"));
+		console.log('outFile',outFile)
 
 		var sql = "INSERT OR REPLACE INTO processed_collections (process_path, collection, processor, status, progressfile, outfile) " +
 			" values (?, ?, ?, ?, ?, ?);";
 		await Zotero.PaperMachines.DB.queryAsync(sql, [processPath, thisID, processor, "running", progressFile, outFile]);
 
+		console.log('sql done')
 
 		var callback = function (finished) {
 			if (finished) {
@@ -556,10 +673,16 @@ Zotero.PaperMachines = {
 			}
 		};
 
+		console.log('callback')
+
 		var observer = new Zotero.PaperMachines.processObserver(processor, processPath, callback);
 
-		var java_exe_file = Zotero.PaperMachines._getLocalFile(Zotero.PaperMachines.java_exe);
+		console.log('observer')
 
+		// var java_exe_file = Zotero.PaperMachines._getLocalFile(Zotero.PaperMachines.java_exe);
+		var java_exe_file = Zotero.PaperMachines.java_exe;
+
+		console.log('java_exe_file',java_exe_file)
 
 		if (processor.indexOf("mallet") != -1) {
 			procArgs = ["-Djava.util.logging.config.file="+loggingProperties].concat(procArgs);
@@ -568,7 +691,10 @@ Zotero.PaperMachines = {
 			"-Xmx4g" : "-Xmx1g";
 		procArgs = [mem_alloc, "-Dfile.encoding=UTF8","-jar", this.jython_path].concat(procArgs);
 
-		Zotero.PaperMachines.LOG(java_exe_file.path + " " + procArgs.map(function(d) { return d.indexOf(" ") != -1 ? '"' + d + '"' : d; }).join(" "));
+		Zotero.PaperMachines.LOG(java_exe_file + " " + procArgs.map(function(d) { return d.indexOf(" ") != -1 ? '"' + d + '"' : d; }).join(" "));
+
+		console.log('java_exe_file',java_exe_file)
+		console.log('procArgs',procArgs)
 
 		proc.init(java_exe_file);
 		proc.runAsync(procArgs, procArgs.length, observer);
@@ -582,7 +708,12 @@ Zotero.PaperMachines = {
 		iframe.setAttribute("height", 160);
 		iframe.setAttribute("flex", 2);
 		var tagSelector = ZoteroPane.document.getElementById("zotero-tag-selector");
-		var tagSelectorGroup = ZoteroPane.document.getAnonymousNodes(tagSelector)[0];
+		// var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+		// 	.getService(Components.interfaces.nsIWindowMediator).getMostRecentWindow("navigator:browser");
+		// var tagSelector = win.ZoteroPane.tagSelector;
+		var tagSelectorGroup = ZoteroPane.document.getAnonymousNodes(tagSelector);//[0];
+
+		if(tagSelectorGroup === null) return;
 
 		var currentBox = tagSelector.id("no-tags-box");
 		tagSelectorGroup.replaceChild(iframe, currentBox);
@@ -594,7 +725,13 @@ Zotero.PaperMachines = {
 	restoreTagsBox: function () {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
 		var tagSelector = ZoteroPane.document.getElementById("zotero-tag-selector");
+		// var win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+		// 	.getService(Components.interfaces.nsIWindowMediator).getMostRecentWindow("navigator:browser");
+		// var tagSelector = win.ZoteroPane.tagSelector;
 		var tagSelectorGroup = ZoteroPane.document.getAnonymousNodes(tagSelector)[0];
+
+		if(tagSelectorGroup === null) return;
+
 		const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 		var noTagsBox = document.createElementNS(XUL_NS, "vbox");
 		noTagsBox.setAttribute("id", "no-tags-box");
@@ -632,7 +769,8 @@ Zotero.PaperMachines = {
 		var ZoteroPane = win.ZoteroPane;
 		if (ZoteroPane && ZoteroPane.loaded && ZoteroPane.collectionsView && ZoteroPane.collectionsView.selection && !ZoteroPane.onCollectionSelected_) {
 			if (Zotero.PaperMachines.tagCloudReplace) {
-				ZoteroPane.document.getElementById("zotero-tag-selector").uninit();
+				win.ZoteroPane.tagSelector.uninit();
+				//ZoteroPane.document.getElementById("zotero-tag-selector").uninit();
 			}
 
 			ZoteroPane.onCollectionSelected_ = ZoteroPane.onCollectionSelected;
@@ -651,7 +789,8 @@ Zotero.PaperMachines = {
 	},
 	displayWordCloud: function () {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		var thisID = Zotero.PaperMachines.getItemGroupID(ZoteroPane.getItemGroup());
+		// var thisID = Zotero.PaperMachines.getItemGroupID(ZoteroPane.getItemGroup());
+		var thisID = Zotero.PaperMachines.getItemGroupID(ZoteroPane.getCollectionTreeRow());
 
 		var wordCloudURI = "zotero://papermachines/wordcloud/" + thisID;
 		Zotero.PaperMachines.replaceTagsBoxWithWordCloud(wordCloudURI);
@@ -661,8 +800,10 @@ Zotero.PaperMachines = {
 		var query = "SELECT filename, itemID, outfile, collection FROM files_to_extract;";
 		var docs = await this.DB.queryAsync(query);
 
-		var csv_file = this.extract_csv_dir.clone();
-		csv_file.append(thisID + ".csv");
+		// var csv_file = this.extract_csv_dir.clone();
+		// csv_file.append(thisID + ".csv");
+		var csv_file = OS.Path.join(this.extract_csv_dir,thisID + ".csv");
+		console.log('csv_file',csv_file)
 
 		var csv_str = "";
 		var header = ["filename", "itemID", "outfile", "collection"];
@@ -671,6 +812,8 @@ Zotero.PaperMachines = {
 			var row = [];
 			for (var k in header) {
 				var val;
+				console.log('header[k]',header[k])
+				console.log('docs[i]',docs[i])
 				if (header[k] in docs[i]) {
 					val = docs[i][header[k]];
 				}
@@ -690,6 +833,7 @@ Zotero.PaperMachines = {
 		return csv_file;
 	},
 	addExtractedToDB: async function(path) {
+		console.log('addExtractedToDB')
 		var extracted = Zotero.PaperMachines._getLocalFile(path);
 		var json_data = Zotero.File.getContents(extracted);
 		var docs = JSON.parse(json_data);
@@ -738,11 +882,13 @@ Zotero.PaperMachines = {
 		var id = this.getItemGroupID(collection);
 		if (!id) return false;
 
-		var csv_file = this.csv_dir.clone();
-		csv_file.append(id + ".csv");
-		if (!csv_file.exists()) {
-			csv_file.create(Components.interfaces.nsIFile.FILE_TYPE, 0644);
-		}
+		// var csv_file = this.csv_dir.clone();
+		// csv_file.append(id + ".csv");
+		var csv_file = OS.Path.join(this.csv_dir,id + ".csv");
+		// if (!csv_file.exists()) {
+		// 	csv_file.create(Components.interfaces.nsIFile.FILE_TYPE, 0644);
+		// }
+		console.log('csv_file',csv_file)
 
 		var csv_str = "";
 		var header = ["filename", "itemID", "title", "label", "key", "libraryKey", "year", "date", "place"];
@@ -808,7 +954,8 @@ Zotero.PaperMachines = {
 		});
 	},
 	traverse: function () {
-		var itemGroup = ZoteroPane.getItemGroup();
+		// var itemGroup = ZoteroPane.getItemGroup();
+		var itemGroup = ZoteroPane.getCollectionTreeRow();
 		var collections = Zotero.PaperMachines.captureCollectionTreeStructure(itemGroup);
 		var names = "";
 
@@ -877,7 +1024,7 @@ Zotero.PaperMachines = {
 	},
 	getPlaceOfItem: async function (item) {
 		var path = await this.DB.valueQueryAsync("SELECT filename FROM doc_files WHERE itemID = ?;",[item.id]);
-		var place = false;
+		var place = false;	
 
 		if (path) {
 			var geoparseFile = Zotero.PaperMachines._getLocalFile(path.replace(".txt", "_geoparse.json"));
@@ -991,16 +1138,23 @@ Zotero.PaperMachines = {
 		var dir = Zotero.PaperMachines._getOrCreateDir(thisGroup);
 		// Zotero.showZoteroPaneProgressMeter(itemGroup.getName());
 
+		
+
 		var items = null;
 		if ("getItems" in itemGroup) {
 			items = await itemGroup.getItems();
 			console.log('getItems')
+
 		} else if ("getChildItems" in itemGroup) {
 			items = await itemGroup.getChildItems();
+			console.log('getChildItems')
 		}
+		// console.log('ITEMS',items)
 
 		for (var i in items) {
 			var item = items[i], fulltext = "", filename = "";
+			// console.log("item is",item)
+			// if(item){
 			if (item.isRegularItem()) {
 				if (Preferences.get("extensions.papermachines.general.download_snapshots")) {
 					Zotero.PaperMachines._downloadSnapshots(item);
@@ -1013,6 +1167,7 @@ Zotero.PaperMachines = {
 					queue.add(Zotero.PaperMachines._extractStandaloneNote, item, dir, i, queue);
 				}
 			}
+			// }
 		}
 
 		queue.next();
@@ -1060,8 +1215,12 @@ Zotero.PaperMachines = {
 		var gettingWord = Preferences.get("extensions.papermachines.general.extract_word");
 		var gettingTXT = Preferences.get("extensions.papermachines.general.extract_txt");
 
-		var outFile = dir.clone();
-		outFile.append(Zotero.PaperMachines.getFilenameForItem(item));
+		console.log('gettingPDF',gettingPDF)
+
+		// var outFile = dir.clone();
+		// outFile.append(Zotero.PaperMachines.getFilenameForItem(item));
+		var outFile = OS.Path.join(dir,Zotero.PaperMachines.getFilenameForItem(item));
+		console.log('outFile',outFile)
 
 		var notes_str = "<html><head></head><body>";
 
@@ -1069,12 +1228,14 @@ Zotero.PaperMachines = {
 		for (var a in attachments) {
 			var a_item = Zotero.Items.get(attachments[a]);
 			var mimetype = a_item.attachmentMIMEType;
+			console.log('mimetype',mimetype)
 			if ((mimetype == 'application/pdf' && gettingPDF)
 			   || (mimetype == 'text/html' && gettingHTML)
 			   || ((mimetype == 'application/msword' || mimetype == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') && gettingWord)
 			   || (mimetype == 'text/plain' && gettingTXT)) {
 				var orig_file = a_item.getFile().path;
 				if (orig_file) {
+					console.log('[orig_file, item.id, outFile, OS.Path.basename(dir)]',orig_file, item.id, outFile, OS.Path.basename(dir))
 					await Zotero.PaperMachines.DB.queryAsync("INSERT OR IGNORE INTO files_to_extract (filename, itemID, outfile, collection) VALUES (?,?,?,?)", [orig_file, item.id, outFile, OS.Path.basename(dir)]);
 				}
 			}
@@ -1097,6 +1258,9 @@ Zotero.PaperMachines = {
 	},
 	_extractNotes: async function (item, dir, notes_str) {
 		// var notesFile = dir.clone();
+		// notesFile.append(Zotero.PaperMachines.getFilenameForItem(item).replace(".txt", "_notes.html"));
+		var notesFile = OS.Path.join(dir,Zotero.PaperMachines.getFilenameForItem(item).replace(".txt", "_notes.html"));
+		console.log('notesFile',notesFile)
 
 		notes_str = notes_str || "<html><head></head><body>";
 
@@ -1109,12 +1273,18 @@ Zotero.PaperMachines = {
 		notes_str += "</body></html>";
 
 		Zotero.File.putContentsAsync(notesFile, notes_str);
+		console.log('[notesFile, item.id, notesFile.replace("_notes.html", ".txt"), dir]',notesFile, item.id, notesFile.replace("_notes.html", ".txt"), OS.Path.basename(dir))
 		await Zotero.PaperMachines.DB.queryAsync("INSERT OR IGNORE INTO files_to_extract (filename, itemID, outfile, collection) VALUES (?,?,?,?)", [notesFile, item.id, notesFile.replace("_notes.html", ".txt"), OS.Path.basename(dir)]);
 	},
 	_extractStandalone: async function (item, dir, i, queue) {
 		var percentDone = (parseInt(i)+queue.runningTotal)*100.0/queue.grandTotal;
 		Zotero.updateZoteroPaneProgressMeter(percentDone);
 
+		// var outFile = dir.clone();
+		// outFile.append(Zotero.PaperMachines.getFilenameForItem(item));
+		var outFile = OS.Path.join(dir,Zotero.PaperMachines.getFilenameForItem(item));
+		console.log('outFile',outFile)
+		console.log('[item.getFile().path, item.id, outFile, OS.Path.basename(dir)]',item.getFile().path, item.id, outFile, OS.Path.basename(dir))
 		await Zotero.PaperMachines.DB.queryAsync("INSERT OR IGNORE INTO files_to_extract (filename, itemID, outfile, collection) VALUES (?,?,?,?)", [item.getFile().path, item.id, outFile, OS.Path.basename(dir)]);
 
 		queue.runningTotal += 1;
@@ -1124,20 +1294,27 @@ Zotero.PaperMachines = {
 		var percentDone = (parseInt(i)+queue.runningTotal)*100.0/queue.grandTotal;
 		Zotero.updateZoteroPaneProgressMeter(percentDone);
 
-		var notesFile = dir.clone();
-		notesFile.append(Zotero.PaperMachines._sanitizeFilename(item.getNoteTitle()) + ".html");
+		// var notesFile = dir.clone();
+		// notesFile.append(Zotero.PaperMachines._sanitizeFilename(item.getNoteTitle()) + ".html");
+		var notesFile = OS.Path.join(dir,Zotero.PaperMachines._sanitizeFilename(item.getNoteTitle()) + ".html");
+		console.log('notesFile',notesFile)
 
 		var notes_str = "<html><head></head><body>";
 		notes_str += item.getNote();
 		notes_str += "</body></html>";
 
 		Zotero.File.putContentsAsync(notesFile, notes_str);
+		console.log('[notesFile, item.id, notesFile.replace(".html", ".txt"), OS.Path.basename(dir)]',notesFile, item.id, notesFile.replace(".html", ".txt"), OS.Path.basename(dir))
 		await Zotero.PaperMachines.DB.queryAsync("INSERT OR IGNORE INTO files_to_extract (filename, itemID, outfile, collection) VALUES (?,?,?,?)", [notesFile, item.id, notesFile.replace(".html", ".txt"), OS.Path.basename(dir)]);
 
 		queue.runningTotal += 1;
 		queue.next();
 	},
 	_extractTags: async function (item, dir, tags_str) {
+		// var tagsFile = dir.clone();
+		// tagsFile.append(Zotero.PaperMachines.getFilenameForItem(item).replace(".txt", "_tags.txt"));
+		var tagsFile = OS.Path.join(dir,Zotero.PaperMachines.getFilenameForItem(item).replace(".txt", "_tags.txt"));
+		console.log('tagsFile',tagsFile)
 
 		tags_str = tags_str || "";
 
@@ -1145,6 +1322,7 @@ Zotero.PaperMachines = {
 		var tags_str = tags.map(function (d) { return d.name}).join(", ");
 
 		Zotero.File.putContentsAsync(tagsFile, tags_str);
+		console.log('[tagsFile, item.id, tagsFile.replace("_tags.txt", ".txt"), OS.Path.basename(dir)]',tagsFile, item.id, tagsFile.replace("_tags.txt", ".txt"), OS.Path.basename(dir))
 		await Zotero.PaperMachines.DB.queryAsync("INSERT OR IGNORE INTO files_to_extract (filename, itemID, outfile, collection) VALUES (?,?,?,?)", [tagsFile, item.id, tagsFile.replace("_tags.txt", ".txt"), OS.Path.basename(dir)]);
 	},
 	_downloadSnapshots: function (item) {
@@ -1298,7 +1476,8 @@ Zotero.PaperMachines = {
 	},
 	getThisGroupID: function () {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		return Zotero.PaperMachines.getItemGroupID(ZoteroPane.getItemGroup());
+		//return Zotero.PaperMachines.getItemGroupID(ZoteroPane.getItemGroup());
+		return Zotero.PaperMachines.getItemGroupID(ZoteroPane.getCollectionTreeRow());
 	},
 	activateMenuItems: function (thisID) {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
@@ -1345,7 +1524,9 @@ Zotero.PaperMachines = {
 	},
 	viewOutput: function () {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		var thisGroup = ZoteroPane.getItemGroup();
+		// var thisGroup = ZoteroPane.getItemGroup();
+		var thisGroup = ZoteroPane.getCollectionTreeRow()
+		// var collectionTreeRow = this.collectionsView.selectedTreeRow;
 		var thisID = Zotero.PaperMachines.getItemGroupID(thisGroup);
 		var collectionName = Zotero.PaperMachines.getGroupName(thisGroup);
 
@@ -1361,7 +1542,8 @@ Zotero.PaperMachines = {
 	},
 	exportOutput: function () {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		var thisGroup = ZoteroPane.getItemGroup();
+		//var thisGroup = ZoteroPane.getItemGroup();
+		var thisGroup = ZoteroPane.getCollectionTreeRow();
 		var thisID = Zotero.PaperMachines.getItemGroupID(thisGroup);
 		var collectionName = Zotero.PaperMachines.getGroupName(thisGroup);
 
@@ -1375,16 +1557,17 @@ Zotero.PaperMachines = {
 				this._copyAllFiles(this.aux_dir, new_aux);
 				for (var i in export_processes) {
 					var file = Zotero.PaperMachines._getLocalFile(export_processes[i]);
-					file.copyTo(new_dir, file.leafName);
+					file.copyTo(new_dir, OS.Path.basename(file));
 					var file2 = Zotero.PaperMachines._getLocalFile(export_processes[i].replace('.html', '.js'));
-					if (file2.exists()) file2.copyTo(new_dir, file2.leafName);
+					if (file2.exists()) file2.copyTo(new_dir, OS.Path.basename(file2));
 				}
 			}
 		}
 	},
 	exportText: function() {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		var thisGroup = ZoteroPane.getItemGroup();
+		// var thisGroup = ZoteroPane.getItemGroup();
+		var thisGroup = ZoteroPane.getCollectionTreeRow();
 		var thisID = Zotero.PaperMachines.getItemGroupID(thisGroup);
 		var collectionName = Zotero.PaperMachines.getGroupName(thisGroup);
 
@@ -1392,8 +1575,10 @@ Zotero.PaperMachines = {
 
         if (export_dir) {
             var new_dir = this._getOrCreateDir(collectionName + " texts", export_dir);
-            var source_dir = this.pm_dir.clone();
-            source_dir.append(thisID);
+            // var source_dir = this.pm_dir.clone();
+            // source_dir.append(thisID);
+			var source_dir = OS.Path.join(dir,thisID);
+			console.log('source_dir',source_dir)
 
             if ("getItems" in thisGroup) {
 				var items = thisGroup.getItems();
@@ -1423,7 +1608,8 @@ Zotero.PaperMachines = {
 	},
 	resetOutput: async function () {
 		var ZoteroPane = Zotero.PaperMachines.getZoteroPane();
-		var thisGroup = ZoteroPane.getItemGroup();
+		// var thisGroup = ZoteroPane.getItemGroup();
+		var thisGroup = ZoteroPane.getCollectionTreeRow();
 		var thisID = Zotero.PaperMachines.getItemGroupID(thisGroup);
 		var collectionName = Zotero.PaperMachines.getGroupName(thisGroup);
 
@@ -1517,11 +1703,19 @@ Zotero.PaperMachines = {
 		return Zotero.PaperMachines._promptUser(params);
 	},
 	selectStoplist: function (lang) {
-		var stopwords_dir = Zotero.PaperMachines.processors_dir.clone();
-		stopwords_dir.append("stopwords");
+		// var stopwords_dir = Zotero.PaperMachines.processors_dir.clone();
+		// stopwords_dir.append("stopwords");
+		var stopwords_dir = OS.Path.join(Zotero.PaperMachines.processors_dir,"stopwords");
 		var orig_stopfile = Zotero.PaperMachines._getOrCreateFile("stopwords_" + lang + ".txt", stopwords_dir);
-		var stopwords = Zotero.File.getContents(orig_stopfile) + '\n';
+		console.log('orig_stopfile',orig_stopfile)
+		var stopwords = '';
+		try{
+			stopwords = Zotero.File.getContents(orig_stopfile) + '\n';
+		} catch(e){
+			console.log(e);
+		}
 		var stopfile = Zotero.PaperMachines._getOrCreateFile("stopwords.txt", Zotero.PaperMachines.processors_dir);
+		console.log('stopfile',stopfile)
 		var custom_stopwords = Preferences.get("extensions.papermachines.stopwords");
 
 		if (custom_stopwords) {
@@ -1785,7 +1979,7 @@ Zotero.PaperMachines = {
 				}
 
 				var ris_str = Zotero.PaperMachines.generateRIS(items);
-				var ris_file = Zotero.PaperMachines._getOrCreateFile(import_dir.leafName + ".ris", import_dir);
+				var ris_file = Zotero.PaperMachines._getOrCreateFile(OS.Path.basename(import_dir) + ".ris", import_dir);
 				Zotero.File.putContentsAsync(ris_file, ris_str);
 
 				Zotero_File_Interface.importFile(ris_file);
@@ -1797,21 +1991,22 @@ Zotero.PaperMachines = {
 		while (files.hasMoreElements()) {
 			var f = files.getNext().QueryInterface(Components.interfaces.nsIFile);
 			if (f.isFile() && f.leafName.toLowerCase().indexOf(".pdf") != -1) {
-				if (!(dir.leafName in found_obj)) {
-					found_obj[dir.leafName] = [];
+				if (!(OS.Path.basename(dir) in found_obj)) {
+					found_obj[OS.Path.basename(dir)] = [];
 				}
-				found_obj[dir.leafName].push(f);
+				found_obj[OS.Path.basename(dir)].push(f);
 			} else if (f.isDirectory()) {
 				Zotero.PaperMachines.findPDFsInDir(f, found_obj);
 			}
 		}
 	},
 	applyRegexToPDF: function (file, regex, regex2) {
-		var pdftotext = Zotero.getZoteroDirectory();
-		pdftotext.append(Zotero.Fulltext.pdfConverterFileName);
+		// var pdftotext = Zotero.getZoteroDirectory();
+		// pdftotext.append(Zotero.Fulltext.pdfConverterFileName);
+		var pdftotext = OS.Path.join(Zotero.DataDirectory.dir, 'pdftotext')
 
 		var textFile = file.parent;
-		textFile.append(file.leafName + ".txt");
+		textFile.append(OS.Path.basename(file) + ".txt");
 		Zotero.debug('Running pdftotext -enc UTF-8 -nopgbrk "' + file.path + '" "' + textFile.path + '"');
 
 		var proc = Components.classes["@mozilla.org/process/util;1"].
@@ -1839,11 +2034,12 @@ Zotero.PaperMachines = {
 		return pdf_years[0];
 	},
 	getDateFromPDFMetadata: function (file) {
-		var pdfinfo = Zotero.getZoteroDirectory();
-		pdfinfo.append(Zotero.Fulltext.pdfInfoFileName);
+		// var pdfinfo = Zotero.getZoteroDirectory();
+		// pdfinfo.append(Zotero.Fulltext.pdfInfoFileName);
+		var pdfinfo = OS.Path.join(Zotero.DataDirectory.dir, 'pdfinfo')
 
 		var infoFile = file.parent;
-		infoFile.append(file.leafName + ".info");
+		infoFile.append(OS.Path.basename(file) + ".info");
 		Zotero.debug('Running pdfinfo "' + file.path + '" "' + infoFile.path + '"');
 
 		var proc = Components.classes["@mozilla.org/process/util;1"].
@@ -2094,3 +2290,18 @@ Zotero.PaperMachines._Sequence.prototype = {
 
 // window.addEventListener('load', function(e) { Zotero.PaperMachines.createUI(); }, false);
 window.addEventListener("papermachines-request", function (e) { Zotero.PaperMachines.evtListener(e); }, false, true);
+
+
+// Initialize the utility
+window.addEventListener('load', function(e) { 
+
+	
+	return new Promise((resolve, reject) => { 
+
+	return Zotero.PaperMachines.init(); 
+
+	})
+
+}, false);
+
+// Zotero.PaperMachines = Zotero.PaperMachines || new PaperMachines
