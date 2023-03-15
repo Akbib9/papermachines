@@ -76,7 +76,7 @@ Preferences.prototype = {
    */
   get: function(prefName, defaultValue) {
     if (isArray(prefName))
-      return prefName.map(function(v) this.get(v, defaultValue), this);
+      return prefName.map(function(v){return this.get(v, defaultValue)}, this);
 
     if (this._site)
       return this._siteGet(prefName, defaultValue);
@@ -257,7 +257,7 @@ Preferences.prototype = {
 
   reset: function(prefName) {
     if (isArray(prefName)) {
-      prefName.map(function(v) this.reset(v), this);
+      prefName.map(function(v){return this.reset(v)}, this);
       return;
     }
 
@@ -389,9 +389,9 @@ Preferences.prototype = {
     // make it.  We could index by fullBranch, but we can't index by callback
     // or thisObject, as far as I know, since the keys to JavaScript hashes
     // (a.k.a. objects) can apparently only be primitive values.
-    let [observer] = observers.filter(function(v) v.prefName   == fullPrefName &&
+    let [observer] = observers.filter(function(v){return v.prefName   == fullPrefName &&
                                                   v.callback   == callback &&
-                                                  v.thisObject == thisObject);
+                                                  v.thisObject == thisObject});
 
     if (observer) {
       Preferences._prefSvc.removeObserver(fullPrefName, observer);
@@ -433,8 +433,8 @@ Preferences.prototype = {
     let prefSvc = Cc["@mozilla.org/preferences-service;1"].
                   getService(Ci.nsIPrefService).
                   getBranch(this._prefBranch).
-                  QueryInterface(Ci.nsIPrefBranch2);
-    this.__defineGetter__("_prefSvc", function() prefSvc);
+                  QueryInterface(Ci.nsIPrefBranch);
+    this.__defineGetter__("_prefSvc", function(){return prefSvc});
     return this._prefSvc;
   },
 
@@ -445,7 +445,7 @@ Preferences.prototype = {
   get _ioSvc() {
     let ioSvc = Cc["@mozilla.org/network/io-service;1"].
                 getService(Ci.nsIIOService);
-    this.__defineGetter__("_ioSvc", function() ioSvc);
+    this.__defineGetter__("_ioSvc", function(){return ioSvc});
     return this._ioSvc;
   },
 
@@ -456,7 +456,7 @@ Preferences.prototype = {
   get _contentPrefSvc() {
     let contentPrefSvc = Cc["@mozilla.org/content-pref/service;1"].
                          getService(Ci.nsIContentPrefService);
-    this.__defineGetter__("_contentPrefSvc", function() contentPrefSvc);
+    this.__defineGetter__("_contentPrefSvc", function(){return contentPrefSvc});
     return this._contentPrefSvc;
   }
 
