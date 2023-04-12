@@ -298,12 +298,12 @@ Zotero.PaperMachines = {
 		console.log('PaperMachines')
 		// console.log('Zotero.getZoteroDirectory()',Zotero.getZoteroDirectory())
 		console.log('Zotero.DataDirectory.dir',Zotero.DataDirectory.dir)
-		// Zotero.Error('Zotero.DataDirectory.dir'+Zotero.DataDirectory.dir)
+		Zotero.Error('Zotero.DataDirectory.dir'+Zotero.DataDirectory.dir)
 
-		// this.pm_dir = this._getOrCreateDir("papermachines", Zotero.getZoteroDirectory());
+		this.pm_dir = this._getOrCreateDir("papermachines", Zotero.getZoteroDirectory());
 		
-		// this.pm_dir = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines')
-		// await OS.File.makeDir(this.pm_dir, { ignoreExisting: true })
+		this.pm_dir = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines')
+		await OS.File.makeDir(this.pm_dir, { ignoreExisting: true })
 
 		this.pm_dir = this._getOrCreateDir("papermachines", Zotero.DataDirectory.dir);
 		this.csv_dir = this._getOrCreateDir("csv");
@@ -315,22 +315,22 @@ Zotero.PaperMachines = {
 		this.props_dir = this._getOrCreateDir("props", this.log_dir);
 		this.args_dir = this._getOrCreateDir("args");
 
-		// this.pm_dir = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines')
-		// await OS.File.makeDir(this.pm_dir, { ignoreExisting: true });
-		// this.csv_dir = OS.Path.join(this.pm_dir,"csv");
-		// await OS.File.makeDir(this.csv_dir, { ignoreExisting: true });
-		// this.extract_csv_dir = OS.Path.join(this.pm_dir,"extractcsv");
-		// await OS.File.makeDir(this.extract_csv_dir, { ignoreExisting: true });
-		// this.out_dir = OS.Path.join(this.pm_dir,"out");
-		// await OS.File.makeDir(this.out_dir, { ignoreExisting: true });
-		// this.processors_dir = OS.Path.join(this.pm_dir,"processors");
-		// await OS.File.makeDir(this.processors_dir, { ignoreExisting: true });
-		// this.log_dir = OS.Path.join(this.pm_dir,"logs", this.out_dir);
-		// await OS.File.makeDir(this.log_dir, { ignoreExisting: true });
-		// this.props_dir = OS.Path.join(this.pm_dir,"props", this.log_dir);
-		// await OS.File.makeDir(this.props_dir, { ignoreExisting: true });
-		// this.args_dir = OS.Path.join(this.pm_dir,"args");
-		// await OS.File.makeDir(this.args_dir, { ignoreExisting: true });
+		this.pm_dir = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines')
+		await OS.File.makeDir(this.pm_dir, { ignoreExisting: true });
+		this.csv_dir = OS.Path.join(this.pm_dir,"csv");
+		await OS.File.makeDir(this.csv_dir, { ignoreExisting: true });
+		this.extract_csv_dir = OS.Path.join(this.pm_dir,"extractcsv");
+		await OS.File.makeDir(this.extract_csv_dir, { ignoreExisting: true });
+		this.out_dir = OS.Path.join(this.pm_dir,"out");
+		await OS.File.makeDir(this.out_dir, { ignoreExisting: true });
+		this.processors_dir = OS.Path.join(this.pm_dir,"processors");
+		await OS.File.makeDir(this.processors_dir, { ignoreExisting: true });
+		this.log_dir = OS.Path.join(this.pm_dir,"logs", this.out_dir);
+		await OS.File.makeDir(this.log_dir, { ignoreExisting: true });
+		this.props_dir = OS.Path.join(this.pm_dir,"props", this.log_dir);
+		await OS.File.makeDir(this.props_dir, { ignoreExisting: true });
+		this.args_dir = OS.Path.join(this.pm_dir,"args");
+		await OS.File.makeDir(this.args_dir, { ignoreExisting: true });
 
 		console.log('pre jython');
 
@@ -369,10 +369,10 @@ Zotero.PaperMachines = {
 
 		console.log('past Preferences');
 
-		// this.java_exe = this.findJavaExecutable();
-		// console.log('this.java_exe',this.java_exe)
+		this.java_exe = this.findJavaExecutable();
+		console.log('this.java_exe',this.java_exe)
 
-		// await this.initDB();
+		await this.initDB();
 	},
 	initDB: async function(){
 		if (this.DB !== null) return;
