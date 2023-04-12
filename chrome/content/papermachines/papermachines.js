@@ -296,11 +296,11 @@ Zotero.PaperMachines = {
 								 .wrappedJSObject;
 		protocol._extensions[this.SCHEME] = this.channel;
 		console.log('PaperMachines')
-		// console.log('Zotero.getZoteroDirectory()',Zotero.getZoteroDirectory())
+		// console.log('Zotero.DataDirectory.dir',Zotero.DataDirectory.dir)
 		console.log('Zotero.DataDirectory.dir',Zotero.DataDirectory.dir)
 		Zotero.Error('Zotero.DataDirectory.dir'+Zotero.DataDirectory.dir)
 
-		this.pm_dir = this._getOrCreateDir("papermachines", Zotero.getZoteroDirectory());
+		this.pm_dir = this._getOrCreateDir("papermachines", Zotero.DataDirectory.dir);
 		
 		this.pm_dir = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines')
 		await OS.File.makeDir(this.pm_dir, { ignoreExisting: true })
@@ -377,7 +377,7 @@ Zotero.PaperMachines = {
 	initDB: async function(){
 		if (this.DB !== null) return;
 		const dbpath = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines.sqlite');
-		// const dbpath = OS.Path.join(Zotero.getZoteroDirectory(), 'papermachines.sqlite');
+		// const dbpath = OS.Path.join(Zotero.DataDirectory.dir, 'papermachines.sqlite');
 		// const dbpath = 'papermachines';
 		console.log('DBConnection');
 		// Connect to (and create, if necessary) papermachines.sqlite in the Zotero directory
@@ -454,7 +454,7 @@ Zotero.PaperMachines = {
 		var id = this.getItemGroupID(itemGroup);
 		console.log('extractText id',id)
 		
-		// var pdftotext = Zotero.getZoteroDirectory();
+		// var pdftotext = Zotero.DataDirectory.dir;
 		// pdftotext.append(Zotero.Fulltext.pdfConverterFileName);
 		// Zotero.Fulltext.getPDFConverterExecAndArgs = function () {
 		// 	return {
@@ -2001,7 +2001,7 @@ Zotero.PaperMachines = {
 		}
 	},
 	applyRegexToPDF: function (file, regex, regex2) {
-		// var pdftotext = Zotero.getZoteroDirectory();
+		// var pdftotext = Zotero.DataDirectory.dir;
 		// pdftotext.append(Zotero.Fulltext.pdfConverterFileName);
 		var pdftotext = OS.Path.join(Zotero.DataDirectory.dir, 'pdftotext')
 
@@ -2034,7 +2034,7 @@ Zotero.PaperMachines = {
 		return pdf_years[0];
 	},
 	getDateFromPDFMetadata: function (file) {
-		// var pdfinfo = Zotero.getZoteroDirectory();
+		// var pdfinfo = Zotero.DataDirectory.dir;
 		// pdfinfo.append(Zotero.Fulltext.pdfInfoFileName);
 		var pdfinfo = OS.Path.join(Zotero.DataDirectory.dir, 'pdfinfo')
 

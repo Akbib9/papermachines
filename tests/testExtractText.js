@@ -13,7 +13,7 @@ var setupTest = function() {
 var testExtractText = function () {
 	Components.utils.import("resource://gre/modules/FileUtils.jsm");
 
-	var dir = controller.window.Zotero.getZoteroDirectory();
+	var dir = controller.window.Zotero.DataDirectory.dir;
 	var pdfToText = new FileUtils.File("/Users/chrisjr/mozmill/pdftotext-MacIntel");
 	pdfToText.copyTo(dir, null);
 
